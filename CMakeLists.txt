@@ -149,6 +149,9 @@ if(BUILD_SHARED_LIBS)
   add_library(mujoco SHARED ${MUJOCO_RESOURCE_FILES})
 else()
   add_library(mujoco STATIC ${MUJOCO_RESOURCE_FILES})
+  # The built-in decoders and encoders get extern "C" handles that the plugin registry names,
+  # so a link of the archive keeps their translation units (see mjPLUGIN_LIB_INIT).
+  target_compile_definitions(mujoco PRIVATE mjSTATIC_PLUGIN_INIT)
 endif()
 
 target_include_directories(

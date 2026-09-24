@@ -57,6 +57,8 @@ if(EMSCRIPTEN)
   option(MUJOCO_USE_FILAMENT "Use filament rendering" OFF)
   option(MUJOCO_WASM_THREADS "Build with multi-threading support" ON)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -O3 -fexceptions")
+  set(BUILD_SHARED_LIBS OFF)
+
   if(MUJOCO_WASM_THREADS)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
@@ -137,12 +139,19 @@ else()
   set(MUJOCO_RESOURCE_FILES "")
 endif()
 
-# Emscripten does not support SHARED libs
+# Threads are needed on every non-Emscripten platform regardless of library type.
 if(NOT EMSCRIPTEN)
   find_package(Threads REQUIRED)
+endif()
+
+# Emscripten does not support SHARED libs (it forces BUILD_SHARED_LIBS OFF above).
+if(BUILD_SHARED_LIBS)
   add_library(mujoco SHARED ${MUJOCO_RESOURCE_FILES})
 else()
   add_library(mujoco STATIC ${MUJOCO_RESOURCE_FILES})
+  # The built-in decoders and encoders get extern "C" handles that the plugin registry names,
+  # so a link of the archive keeps their translation units (see mjPLUGIN_LIB_INIT).
+  target_compile_definitions(mujoco PRIVATE mjSTATIC_PLUGIN_INIT)
 endif()
 
 target_include_directories(
@@ -312,6 +321,9 @@ endif()
 
 if(NOT EMSCRIPTEN AND NOT (APPLE AND MUJOCO_BUILD_MACOS_FRAMEWORKS))
   set(MUJOCO_TARGETS mujoco)
+  if(NOT BUILD_SHARED_LIBS)
+    list(APPEND MUJOCO_TARGETS lodepng miniz)
+  endif()
 
   # Install the libraries.
   install(

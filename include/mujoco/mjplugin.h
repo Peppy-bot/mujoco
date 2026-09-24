@@ -188,11 +188,31 @@ typedef struct mjSDF_ {
 
 //------------------------------------ Initialization ----------------------------------------------
 
+#if !defined(mjEXTERNC)
+  #if defined(__cplusplus)
+    #define mjEXTERNC extern "C"
+  #else
+    #define mjEXTERNC
+  #endif  // defined(__cplusplus)
+#endif  // !defined(mjEXTERNC)
+
 #if defined(__has_attribute)
   #if __has_attribute(constructor)
-    #define mjPLUGIN_LIB_INIT(n)                                     \
-      static void _mj_init_##n(void) __attribute__((constructor));   \
-      static void _mj_init_##n(void)
+    #if defined(mjSTATIC_PLUGIN_INIT)
+      // Static libmujoco: the constructor also gets an extern "C" handle, _mj_ptr_<n>, which
+      // the plugin registry names so that an archive link keeps this translation unit. The
+      // definition follows a separate declaration because gcc rejects an initialized
+      // `extern "C"` declaration under -Werror; the definition inherits the C linkage.
+      #define mjPLUGIN_LIB_INIT(n)                                     \
+        static void _mj_init_##n(void) __attribute__((constructor));   \
+        mjEXTERNC void (*_mj_ptr_##n)(void);                           \
+        void (*_mj_ptr_##n)(void) = _mj_init_##n;                      \
+        static void _mj_init_##n(void)
+    #else
+      #define mjPLUGIN_LIB_INIT(n)                                     \
+        static void _mj_init_##n(void) __attribute__((constructor));   \
+        static void _mj_init_##n(void)
+    #endif
   #endif
 #elif defined(_MSC_VER)
     // on x86, symbols are decorated with a leading underscore
@@ -203,14 +223,6 @@ typedef struct mjSDF_ {
     #endif
 
     #pragma section(".CRT$XCU", read)
-
-    #if !defined(mjEXTERNC)
-      #if defined(__cplusplus)
-        #define mjEXTERNC extern "C"
-      #else
-        #define mjEXTERNC
-      #endif  // defined(__cplusplus)
-    #endif  // !defined(mjEXTERNC)
 
     #define mjPLUGIN_LIB_INIT(n)                                                          \
       static void __cdecl _mj_init_##n(void);                                             \

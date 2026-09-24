@@ -42,6 +42,31 @@ extern "C" {
 #include "engine/engine_global_table.h"
 #include "engine/engine_util_errmem.h"
 
+#if defined(mjSTATIC_PLUGIN_INIT)
+// The decoders, encoders and archive provider built into libmujoco register themselves from
+// constructors in translation units nothing references, which an archive link drops. This table
+// names the handles mjPLUGIN_LIB_INIT gives them in a static build, so a link that reaches the
+// registry keeps those translation units. External linkage makes the compiler emit the table
+// whether or not anything reads it.
+extern "C" {
+extern void (*_mj_ptr_obj_decoder)(void);
+extern void (*_mj_ptr_stl_decoder)(void);
+extern void (*_mj_ptr_mjz_decoder)(void);
+extern void (*_mj_ptr_mjz_encoder)(void);
+extern void (*_mj_ptr_mjz_archive_provider)(void);
+}
+namespace mujoco {
+extern void (**const kStaticPluginHandles[])(void);
+void (**const kStaticPluginHandles[])(void) = {
+  &_mj_ptr_obj_decoder,
+  &_mj_ptr_stl_decoder,
+  &_mj_ptr_mjz_decoder,
+  &_mj_ptr_mjz_encoder,
+  &_mj_ptr_mjz_archive_provider,
+};
+}  // namespace mujoco
+#endif  // defined(mjSTATIC_PLUGIN_INIT)
+
 // set default plugin definition
 void mjp_defaultPlugin(mjpPlugin* plugin) {
   std::memset(plugin, 0, sizeof(*plugin));

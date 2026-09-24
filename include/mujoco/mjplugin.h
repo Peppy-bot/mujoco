@@ -200,10 +200,13 @@ typedef struct mjSDF_ {
   #if __has_attribute(constructor)
     #if defined(mjSTATIC_PLUGIN_INIT)
       // Static libmujoco: the constructor also gets an extern "C" handle, _mj_ptr_<n>, which
-      // the plugin registry names so that an archive link keeps this translation unit.
+      // the plugin registry names so that an archive link keeps this translation unit. The
+      // definition follows a separate declaration because gcc rejects an initialized
+      // `extern "C"` declaration under -Werror; the definition inherits the C linkage.
       #define mjPLUGIN_LIB_INIT(n)                                     \
         static void _mj_init_##n(void) __attribute__((constructor));   \
-        mjEXTERNC void (*_mj_ptr_##n)(void) = _mj_init_##n;            \
+        mjEXTERNC void (*_mj_ptr_##n)(void);                           \
+        void (*_mj_ptr_##n)(void) = _mj_init_##n;                      \
         static void _mj_init_##n(void)
     #else
       #define mjPLUGIN_LIB_INIT(n)                                     \

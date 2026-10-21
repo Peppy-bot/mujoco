@@ -49,6 +49,7 @@ extern "C" {
 // registry keeps those translation units. External linkage makes the compiler emit the table
 // whether or not anything reads it.
 extern "C" {
+extern void (*_mj_ptr_gmsh_decoder)(void);
 extern void (*_mj_ptr_obj_decoder)(void);
 extern void (*_mj_ptr_stl_decoder)(void);
 extern void (*_mj_ptr_mjz_decoder)(void);
@@ -58,6 +59,7 @@ extern void (*_mj_ptr_mjz_archive_provider)(void);
 namespace mujoco {
 extern void (**const kStaticPluginHandles[])(void);
 void (**const kStaticPluginHandles[])(void) = {
+  &_mj_ptr_gmsh_decoder,
   &_mj_ptr_obj_decoder,
   &_mj_ptr_stl_decoder,
   &_mj_ptr_mjz_decoder,
